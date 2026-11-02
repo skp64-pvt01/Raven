@@ -1,0 +1,12 @@
+[package]
+name = "step-03-controls"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "03-controls"
+path = "src/main.rs"
+
+[dependencies]
+raven-gui.workspace = true

@@ -1,0 +1,9 @@
+#!/bin/sh
+# notes - starts the TypeScript application installed in ../share/notes.
+# The FFI binding needs libraven.so; the package installs it in ../lib.
+set -e
+HERE=$(dirname "$(readlink -f "$0")")
+: "${RAVEN_LIBRARY:=${HERE}/../lib/libraven.so}"
+export RAVEN_LIBRARY
+exec deno run --allow-ffi --allow-env --allow-read --allow-write \
+    "$HERE/../share/notes/app/main.ts" "$@"

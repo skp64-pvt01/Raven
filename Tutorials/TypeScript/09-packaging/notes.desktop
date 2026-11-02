@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Notes
+GenericName=Text Editor
+Comment=A small text editor written with Raven (TypeScript)
+Exec=notes %F
+Icon=applications-development
+Terminal=false
+Categories=Utility;TextEditor;
+MimeType=text/plain;

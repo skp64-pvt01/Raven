@@ -1,0 +1,12 @@
+[package]
+name = "instrument-panel"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "instrument_panel"
+path = "src/main.rs"
+
+[dependencies]
+raven-gui = { path = "../../../bindings/rust" }

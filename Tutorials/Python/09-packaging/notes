@@ -1,0 +1,6 @@
+#!/bin/sh
+# notes - starts the application installed in ../share/notes.
+# $(readlink -f "$0") follows a symlink, so the launcher can be linked elsewhere.
+set -e
+HERE=$(dirname "$(readlink -f "$0")")
+exec python3 "$HERE/../share/notes/main.py" "$@"

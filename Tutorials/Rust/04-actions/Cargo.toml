@@ -1,0 +1,12 @@
+[package]
+name = "step-04-actions"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "04-actions"
+path = "src/main.rs"
+
+[dependencies]
+raven-gui.workspace = true
