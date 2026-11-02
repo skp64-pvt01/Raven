@@ -35,12 +35,23 @@ nothing else changes.
 
 ```
 InstrumentPanel/
-├── cpp/      main.cpp, CMakeLists.txt      the reference implementation
+├── cpp/      panel.h, panel.cpp            the pane, as a reusable module
+│             main.cpp, CMakeLists.txt      the standalone window around it
 ├── rust/     src/main.rs, Cargo.toml       the same panel with raven-gui
 └── python/   panel.py                      the same panel with the ctypes binding
 ```
 
-The three files follow the same structure, in the same order:
+`panel.h` is the panel's public face — `panel_create`, `panel_build`,
+`panel_simulate`, `panel_reset`, and a few accessors — so any window can put the
+instruments in a pane and drive them. It can also configure them:
+`panel_set_alarm_limit`, `panel_set_window` (the trend length) and
+`panel_set_switch` for the pump, the valve and the interlocks.
+
+`Examples/Workbench` does exactly that: it opens and closes this panel from a
+menu, a toolbar and a side bar, and reads the alarm threshold, the trend window
+and the startup switches from its JSONC configuration file.
+
+The three implementations follow the same structure, in the same order:
 
 1. the process state and its simulation;
 2. four paint callbacks (meter, digital, LED, chart);
