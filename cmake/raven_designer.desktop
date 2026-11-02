@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Raven Designer
+GenericName=Interface Designer
+Comment=Design Raven interfaces visually
+Exec=raven_designer %F
+Icon=raven
+Terminal=false
+Categories=Development;IDE;
+MimeType=application/xml;text/xml;

@@ -99,7 +99,7 @@ def _callback(ctype, adapt, function):
 Rid = ctypes.c_uint32
 
 RAVEN_VERSION_MAJOR = 0
-RAVEN_VERSION_MINOR = 1
+RAVEN_VERSION_MINOR = 2
 RAVEN_VERSION_PATCH = 0
 RAVEN_API_VERSION = "0.1"
 R_FALSE = 0

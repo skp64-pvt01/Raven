@@ -279,7 +279,9 @@ elseif(RAVEN_PLATFORM_SELECTED STREQUAL "x11")
 		src/platform/x11/x11_internal.h
 	)
 	list(APPEND RAVEN_DEFINITIONS RAVEN_PLATFORM_X11)
-	list(APPEND RAVEN_LIBRARIES ${X11_X11_LIB})
+	# the imported target, so that the installed ravenTargets.cmake does not
+	# contain the absolute path of this machine's libX11.so
+	list(APPEND RAVEN_LIBRARIES X11::X11)
 	if(RAVEN_WAYLAND)
 		list(APPEND RAVEN_PLATFORM_SOURCES
 			src/platform/wayland/wayland_platform.c
@@ -470,6 +472,28 @@ install(DIRECTORY include/raven DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES include/Raven.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(EXPORT ravenTargets NAMESPACE raven:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/raven)
 
+# pkg-config (Linux / BSD, where tools other than CMake look for raven)
+if(RAVEN_PLATFORM_SELECTED STREQUAL "x11")
+	# relocatable prefix: the .pc lives in <prefix>/<libdir>/pkgconfig
+	file(RELATIVE_PATH RAVEN_PC_PREFIX_REL "/${CMAKE_INSTALL_LIBDIR}/pkgconfig" "/")
+	if(RAVEN_BUILD_SHARED)
+		set(RAVEN_PC_REQUIRES "Requires.private: x11")
+		set(RAVEN_PC_LIBS "")
+		set(RAVEN_PC_LIBS_PRIVATE "Libs.private: -pthread -lm -ldl\n")
+	else()
+		# static only: the dependencies are needed by every consumer
+		set(RAVEN_PC_REQUIRES "Requires: x11")
+		set(RAVEN_PC_LIBS " -pthread -lm -ldl")
+		set(RAVEN_PC_LIBS_PRIVATE "")
+	endif()
+	configure_file(cmake/raven.pc.in "${CMAKE_CURRENT_BINARY_DIR}/raven.pc" @ONLY)
+	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/raven.pc" DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+endif()
+
+set(RAVEN_CONFIG_X11 OFF)
+if(RAVEN_PLATFORM_SELECTED STREQUAL "x11")
+	set(RAVEN_CONFIG_X11 ON)
+endif()
 configure_package_config_file(cmake/ravenConfig.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/ravenConfig.cmake"
 	INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/raven)
 write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/ravenConfigVersion.cmake"
@@ -516,5 +540,47 @@ if(RAVEN_IS_TOP_LEVEL)
 	else()
 		set(CPACK_GENERATOR "TGZ")
 	endif()
+
+	# Linux: the same tree as a .deb, and the tools as an AppImage.
+	# CPack has no AppImage generator: "External" runs cmake/AppImage.cmake
+	# after installing into a staging tree (CPACK_TEMPORARY_DIRECTORY).
+	if(UNIX AND NOT APPLE)
+		set(CPACK_PACKAGE_VENDOR "Oscar Soirey")
+		set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+		set(CPACK_DEBIAN_PACKAGE_NAME "raven")
+		set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Oscar Soirey <skp64prj+skp64-pvt01@gmail.com>")
+		set(CPACK_DEBIAN_PACKAGE_SECTION "graphics")
+		set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+		set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://github.com/oscar-soirey/Raven")
+		set(CPACK_DEBIAN_PACKAGE_DESCRIPTION
+			"Raven is a lightweight, multithreaded GUI library in C for editors and tools.\n It comes with raven_designer (a visual interface editor) and raven_theme_editor.")
+		# the Debian copyright file (lintian: no-copyright-file)
+		install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
+			DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/raven RENAME copyright)
+		# the package carries the headers and raven.pc: consumers need libX11 to link
+		set(CPACK_DEBIAN_PACKAGE_DEPENDS "libx11-dev")
+		# libc6 / libx11-6 computed from the binaries instead of guessed
+		set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+		set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+
+		# DEB installs under /usr, the archives stay relocatable (see the file)
+		set(CPACK_PROJECT_CONFIG_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CPackProjectConfig.cmake")
+
+		set(CPACK_APPIMAGE_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
+		set(CPACK_APPIMAGE_FILE_NAME "raven-${PROJECT_VERSION}-linux-${CMAKE_SYSTEM_PROCESSOR}.AppImage")
+		find_program(RAVEN_APPIMAGETOOL NAMES appimagetool
+			DOC "appimagetool used by the AppImage package (CPack External generator)")
+		set(CPACK_APPIMAGE_TOOL "${RAVEN_APPIMAGETOOL}")
+		set(CPACK_EXTERNAL_ENABLE_STAGING ON)
+		set(CPACK_EXTERNAL_PACKAGE_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/cmake/AppImage.cmake")
+
+		list(APPEND CPACK_GENERATOR DEB)
+		if(RAVEN_APPIMAGETOOL)
+			list(APPEND CPACK_GENERATOR External)
+		else()
+			message(STATUS "Raven: appimagetool not found: the AppImage is skipped (set RAVEN_APPIMAGETOOL)")
+		endif()
+	endif()
+
 	include(CPack)
 endif()

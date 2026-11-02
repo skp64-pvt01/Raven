@@ -1,0 +1,11 @@
+prefix=${pcfiledir}/@RAVEN_PC_PREFIX_REL@
+exec_prefix=${prefix}
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: raven
+Description: @PROJECT_DESCRIPTION@
+Version: @PROJECT_VERSION@
+@RAVEN_PC_REQUIRES@
+Libs: -L${libdir} -lraven@RAVEN_PC_LIBS@
+@RAVEN_PC_LIBS_PRIVATE@Cflags: -I${includedir}

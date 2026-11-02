@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Raven Theme Editor
+GenericName=Theme Editor
+Comment=Edit Raven theme files
+Exec=raven_theme_editor %F
+Icon=raven
+Terminal=false
+Categories=Development;
+MimeType=application/xml;text/xml;

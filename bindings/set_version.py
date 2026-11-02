@@ -55,6 +55,11 @@ def main():
     print("version " + version)
 
     replace(os.path.join(ROOT, "src", "core", "base.h"), r'^(#define RVN_VERSION_STRING ")[^"]*(")', r"\g<1>%s\g<2>" % version)
+    for i, part in enumerate(("MAJOR", "MINOR", "PATCH")):
+        replace(os.path.join(ROOT, "include", "raven", "raven_core.h"),
+                r"^(#define RAVEN_VERSION_%s )[0-9]+" % part, r"\g<1>" + version.split(".")[i])
+        replace(os.path.join(HERE, "python", "raven.py"),
+                r"^(RAVEN_VERSION_%s = )[0-9]+" % part, r"\g<1>" + version.split(".")[i])
     replace(os.path.join(HERE, "rust", "Cargo.toml"), r'^(version\s*=\s*")[^"]*(")', r"\g<1>%s\g<2>" % version)
     replace(os.path.join(HERE, "csharp", "Raven.Gui.csproj"), r"(<Version>)[^<]*(</Version>)", r"\g<1>%s\g<2>" % version)
 
