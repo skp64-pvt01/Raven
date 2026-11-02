@@ -12,8 +12,8 @@ target_link_libraries(raven_web INTERFACE raven)
 set_target_properties(raven_web PROPERTIES EXPORT_NAME web)
 add_library(raven::web ALIAS raven_web)
 
-install(TARGETS raven_web EXPORT ravenTargets)
-install(FILES include/raven_web.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(TARGETS raven_web EXPORT ravenTargets COMPONENT development)
+install(FILES include/raven_web.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT development)
 
 if(NOT RAVEN_WITH_STB_IMAGE)
 	message(WARNING "raven_web: Raven is built without its image decoder (RAVEN_WITH_STB_IMAGE=OFF): web views will work but show nothing, the pictures of the pages cannot be decoded.")

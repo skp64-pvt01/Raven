@@ -12,22 +12,29 @@ set(_appdir "${CPACK_PACKAGE_DIRECTORY}/AppDir")
 file(REMOVE_RECURSE "${_appdir}")
 file(MAKE_DIRECTORY "${_appdir}/usr/bin")
 
+# With CPACK_COMPONENTS_ALL set, CPack stages one folder per component
+# (runtime/, development/); the tools live in runtime/.
+set(_stage "${CPACK_TEMPORARY_DIRECTORY}")
+if(IS_DIRECTORY "${_stage}/runtime")
+	set(_stage "${_stage}/runtime")
+endif()
+
 foreach(_app raven_designer raven_theme_editor)
-	set(_bin "${CPACK_TEMPORARY_DIRECTORY}/bin/${_app}")
+	set(_bin "${_stage}/bin/${_app}")
 	if(NOT EXISTS "${_bin}")
 		message(FATAL_ERROR "AppImage: ${_bin} is missing (configure with RAVEN_BUILD_TOOLS=ON and build first)")
 	endif()
 	file(COPY "${_bin}" DESTINATION "${_appdir}/usr/bin")
 endforeach()
 
-file(GLOB _icons "${CPACK_TEMPORARY_DIRECTORY}/share/icons/hicolor/*/apps/raven.png")
+file(GLOB _icons "${_stage}/share/icons/hicolor/*/apps/raven.png")
 if(NOT _icons)
 	message(FATAL_ERROR "AppImage: the raven.png icon is missing from the install tree")
 endif()
 list(GET _icons 0 _icon)
 file(COPY "${_icon}" DESTINATION "${_appdir}")
 
-set(_desktop "${CPACK_TEMPORARY_DIRECTORY}/share/applications/raven_designer.desktop")
+set(_desktop "${_stage}/share/applications/raven_designer.desktop")
 if(NOT EXISTS "${_desktop}")
 	message(FATAL_ERROR "AppImage: raven_designer.desktop is missing from the install tree")
 endif()

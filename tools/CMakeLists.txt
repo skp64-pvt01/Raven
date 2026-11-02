@@ -43,16 +43,16 @@ else()
 endif()
 
 include(GNUInstallDirs)
-install(TARGETS raven_designer raven_theme_editor RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS raven_designer raven_theme_editor RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT runtime)
 
 # Menu entries and the icon used by the .deb and the AppImage.
 if(UNIX AND NOT APPLE)
 	install(FILES
 		"${PROJECT_SOURCE_DIR}/cmake/raven_designer.desktop"
 		"${PROJECT_SOURCE_DIR}/cmake/raven_theme_editor.desktop"
-		DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+		DESTINATION ${CMAKE_INSTALL_DATADIR}/applications COMPONENT runtime)
 	install(FILES "${PROJECT_SOURCE_DIR}/docs/logo-com-192.png"
-		DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/1024x1024/apps RENAME raven.png)
+		DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/1024x1024/apps RENAME raven.png COMPONENT runtime)
 endif()
 
 if(RAVEN_BUILD_TESTS)

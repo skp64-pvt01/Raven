@@ -1,0 +1,24 @@
+# Runs at install time (install(SCRIPT)) because the prefix is only known
+# then: /usr in the DEB (CPACK_PACKAGING_INSTALL_PREFIX), the chosen prefix
+# for `cmake --install --prefix`, and CPack's staging tree for the archives.
+set(_prefix "${CMAKE_INSTALL_PREFIX}")
+if(_prefix STREQUAL "" OR _prefix STREQUAL "/" OR _prefix MATCHES "/_CPack_Packages/")
+	# relocatable: the archive generators stage into CPack's tree, whose
+	# location is not where the files will be unpacked
+	set(_prefix "\${pcfiledir}/../..")
+endif()
+
+set(_dir "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/@CMAKE_INSTALL_LIBDIR@/pkgconfig")
+file(MAKE_DIRECTORY "${_dir}")
+file(WRITE "${_dir}/raven.pc" "prefix=${_prefix}
+exec_prefix=\${prefix}
+libdir=\${prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=\${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: raven
+Description: @PROJECT_DESCRIPTION@
+Version: @PROJECT_VERSION@
+@RAVEN_PC_REQUIRES@
+Libs: -L\${libdir} -lraven@RAVEN_PC_LIBS@
+@RAVEN_PC_LIBS_PRIVATE@Cflags: -I\${includedir}
+")

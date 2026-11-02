@@ -464,18 +464,17 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
 install(TARGETS raven EXPORT ravenTargets
-	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT development
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT runtime
+	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT runtime
 )
-install(DIRECTORY include/raven DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES include/Raven.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(EXPORT ravenTargets NAMESPACE raven:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/raven)
+install(DIRECTORY include/raven DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT development)
+install(FILES include/Raven.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT development)
+install(EXPORT ravenTargets NAMESPACE raven:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/raven COMPONENT development)
 
-# pkg-config (Linux / BSD, where tools other than CMake look for raven)
+# pkg-config (Linux / BSD, where tools other than CMake look for raven).
+# Written when installing, when CMAKE_INSTALL_PREFIX is the real one.
 if(RAVEN_PLATFORM_SELECTED STREQUAL "x11")
-	# relocatable prefix: the .pc lives in <prefix>/<libdir>/pkgconfig
-	file(RELATIVE_PATH RAVEN_PC_PREFIX_REL "/${CMAKE_INSTALL_LIBDIR}/pkgconfig" "/")
 	if(RAVEN_BUILD_SHARED)
 		set(RAVEN_PC_REQUIRES "Requires.private: x11")
 		set(RAVEN_PC_LIBS "")
@@ -486,8 +485,8 @@ if(RAVEN_PLATFORM_SELECTED STREQUAL "x11")
 		set(RAVEN_PC_LIBS " -pthread -lm -ldl")
 		set(RAVEN_PC_LIBS_PRIVATE "")
 	endif()
-	configure_file(cmake/raven.pc.in "${CMAKE_CURRENT_BINARY_DIR}/raven.pc" @ONLY)
-	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/raven.pc" DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+	configure_file(cmake/InstallPkgConfig.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/InstallPkgConfig.cmake" @ONLY)
+	install(SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/InstallPkgConfig.cmake" COMPONENT development)
 endif()
 
 set(RAVEN_CONFIG_X11 OFF)
@@ -499,7 +498,7 @@ configure_package_config_file(cmake/ravenConfig.cmake.in "${CMAKE_CURRENT_BINARY
 write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/ravenConfigVersion.cmake"
 	VERSION ${PROJECT_VERSION} COMPATIBILITY SameMinorVersion)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/ravenConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/ravenConfigVersion.cmake"
-	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/raven)
+	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/raven COMPONENT development)
 
 # ---------------------------------------------------------------------------
 #  Packages:  cmake --build <dir> --target package
@@ -507,15 +506,15 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/ravenConfig.cmake" "${CMAKE_CURRENT_B
 # ---------------------------------------------------------------------------
 
 if(RAVEN_IS_TOP_LEVEL)
-	install(FILES README.md THIRD_PARTY.md DESTINATION ${CMAKE_INSTALL_DATADIR}/raven)
-	install(DIRECTORY docs DESTINATION ${CMAKE_INSTALL_DATADIR}/raven)
+	install(FILES README.md THIRD_PARTY.md DESTINATION ${CMAKE_INSTALL_DATADIR}/raven COMPONENT runtime)
+	install(DIRECTORY docs DESTINATION ${CMAKE_INSTALL_DATADIR}/raven COMPONENT runtime)
 	# the licenses of what the library contains (THIRD_PARTY.md says what and why)
 	file(GLOB RAVEN_THIRD_PARTY_LICENSES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/third_party" "third_party/*/LICENSE*" "third_party/*/OFL*")
 	foreach(license ${RAVEN_THIRD_PARTY_LICENSES})
 		get_filename_component(component "${license}" DIRECTORY)
-		install(FILES "third_party/${license}" DESTINATION ${CMAKE_INSTALL_DATADIR}/raven/licenses/${component})
+		install(FILES "third_party/${license}" DESTINATION ${CMAKE_INSTALL_DATADIR}/raven/licenses/${component} COMPONENT runtime)
 	endforeach()
-	install(DIRECTORY bindings DESTINATION ${CMAKE_INSTALL_DATADIR}/raven
+	install(DIRECTORY bindings DESTINATION ${CMAKE_INSTALL_DATADIR}/raven COMPONENT development
 		PATTERN "CMakeLists.txt" EXCLUDE PATTERN "target" EXCLUDE PATTERN "__pycache__" EXCLUDE PATTERN "Cargo.lock" EXCLUDE)
 
 	if(MSVC)
@@ -535,6 +534,10 @@ if(RAVEN_IS_TOP_LEVEL)
 	set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
 	set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${PROJECT_DESCRIPTION}")
 	set(CPACK_PACKAGE_FILE_NAME "raven-${PROJECT_VERSION}-${RAVEN_PACKAGE_SYSTEM}-${RAVEN_PACKAGE_COMPILER}-${RAVEN_PACKAGE_KIND}")
+	# install components: the tools/documentation and the development files
+	set(CPACK_COMPONENTS_ALL runtime development)
+	set(CPACK_COMPONENT_RUNTIME_DISPLAY_NAME "Raven")
+	set(CPACK_COMPONENT_DEVELOPMENT_DISPLAY_NAME "Raven development files")
 	if(WIN32)
 		set(CPACK_GENERATOR "ZIP")
 	else()
@@ -552,16 +555,28 @@ if(RAVEN_IS_TOP_LEVEL)
 		set(CPACK_DEBIAN_PACKAGE_SECTION "graphics")
 		set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 		set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://github.com/oscar-soirey/Raven")
-		set(CPACK_DEBIAN_PACKAGE_DESCRIPTION
-			"Raven is a lightweight, multithreaded GUI library in C for editors and tools.\n It comes with raven_designer (a visual interface editor) and raven_theme_editor.")
-		# the Debian copyright file (lintian: no-copyright-file)
-		install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
-			DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/raven RENAME copyright)
-		# the package carries the headers and raven.pc: consumers need libX11 to link
-		set(CPACK_DEBIAN_PACKAGE_DEPENDS "libx11-dev")
-		# libc6 / libx11-6 computed from the binaries instead of guessed
-		set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 		set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+
+		# Two packages (install components): raven has the tools and the
+		# documentation, raven-dev the library, headers, CMake package and
+		# pkg-config file. The tools' package keeps its automatic shlib deps;
+		# raven-dev declares libX11 for the consumers that link the library.
+		set(CPACK_DEB_COMPONENT_INSTALL ON)
+		set(CPACK_DEBIAN_RUNTIME_PACKAGE_NAME "raven")
+		set(CPACK_DEBIAN_DEVELOPMENT_PACKAGE_NAME "raven-dev")
+		set(CPACK_DEBIAN_RUNTIME_DESCRIPTION
+			"Raven is a lightweight, multithreaded GUI library in C for editors and tools.\n This package has raven_designer, a visual interface editor, and\n raven_theme_editor.")
+		set(CPACK_DEBIAN_DEVELOPMENT_DESCRIPTION
+			"Headers, static library, CMake package and pkg-config file for Raven.\n Install this package to build programs with the library.")
+		set(CPACK_DEBIAN_RUNTIME_PACKAGE_SHLIBDEPS ON)
+		set(CPACK_DEBIAN_DEVELOPMENT_PACKAGE_DEPENDS
+			"raven (= ${PROJECT_VERSION}), libx11-dev")
+
+		# /usr/share/doc/<package>/copyright for each package
+		install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
+			DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/raven RENAME copyright COMPONENT runtime)
+		install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
+			DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/raven-dev RENAME copyright COMPONENT development)
 
 		# DEB installs under /usr, the archives stay relocatable (see the file)
 		set(CPACK_PROJECT_CONFIG_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CPackProjectConfig.cmake")
