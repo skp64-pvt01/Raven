@@ -3,7 +3,7 @@
  *
  * Everything the panel draws is here: the two meters, the lamps, the strip
  * chart and the simulated plant. The shell (the example's main, or the
- * workbench) only decides where the pane goes and what the menus do.
+ * Raven Workbench) only decides where the pane goes and what the menus do.
  */
 
 #include "panel.h"

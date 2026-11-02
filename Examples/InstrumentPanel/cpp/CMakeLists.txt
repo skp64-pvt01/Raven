@@ -7,6 +7,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(raven REQUIRED)
 
-# panel.cpp is the reusable pane; Examples/Workbench compiles the same file.
+# panel.cpp is the reusable pane; the Raven Workbench compiles a copy of it.
 add_executable(instrument_panel main.cpp panel.cpp)
 target_link_libraries(instrument_panel PRIVATE raven::raven)

@@ -47,9 +47,10 @@ instruments in a pane and drive them. It can also configure them:
 `panel_set_alarm_limit`, `panel_set_window` (the trend length) and
 `panel_set_switch` for the pump, the valve and the interlocks.
 
-`Examples/Workbench` does exactly that: it opens and closes this panel from a
-menu, a toolbar and a side bar, and reads the alarm threshold, the trend window
-and the startup switches from its JSONC configuration file.
+The [Raven Workbench](https://github.com/skp64-pvt01/Raven-workbench) does
+exactly that: it opens and closes this panel from a menu, a toolbar and a side
+bar, and reads the alarm threshold, the trend window and the startup switches
+from its JSONC configuration file.
 
 The three implementations follow the same structure, in the same order:
 

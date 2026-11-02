@@ -2,8 +2,9 @@
  * Raven example - instrument panel (standalone).
  *
  * The instruments themselves live in panel.h / panel.cpp, so the same pane can
- * be embedded in an application: see Examples/Workbench, where it opens and
- * closes from a menu, the toolbar and a side bar.
+ * be embedded in an application: see the Raven Workbench
+ * (https://github.com/skp64-pvt01/Raven-workbench), where it opens and closes
+ * from a menu, the toolbar and a side bar.
  *
  *   ./instrument_panel                    the dashboard
  *   ./instrument_panel --test             no window, no GPU: checks only
