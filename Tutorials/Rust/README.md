@@ -24,24 +24,28 @@ course explains the ones it uses.
 
 ### Building the Raven library
 
-The binding needs the **shared** library (the default build is static):
+The course lives inside the Raven repository, so build its **shared** library
+once, from the repository root:
 
 ```bash
-git clone https://github.com/oscar-soirey/Raven.git
-cmake -S Raven -B Raven/build -DCMAKE_BUILD_TYPE=Release -DRAVEN_BUILD_SHARED=ON
-cmake --build Raven/build -j"$(nproc)"
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DRAVEN_BUILD_SHARED=ON
+cmake --build build -j"$(nproc)"
 ```
 
-That leaves `Raven/build/libraven.so`. Tell Cargo where it is, and tell the
-loader too:
+That is all. `Tutorials/Rust/.cargo/config.toml` points the linker at `build/`
+(`RAVEN_LIB_DIR`) and records the same place as an **rpath** in the binary, so
+`cargo test` and `cargo run` need no environment variables. (An exported
+`LD_LIBRARY_PATH` would not survive: Cargo overwrites it for the programs it
+starts, which is exactly why the rpath is there.)
+
+Using the `raven-dev` package instead, which ships the static `libraven.a`:
 
 ```bash
-export RAVEN_LIB_DIR="$PWD/Raven/build"     # build.rs: -L for the linker
-export LD_LIBRARY_PATH="$RAVEN_LIB_DIR:$LD_LIBRARY_PATH"   # the loader at run time
+RAVEN_STATIC=1 RAVEN_LIB_DIR=/usr/lib cargo test --workspace
 ```
 
-`RAVEN_STATIC=1` links the static library instead (`libraven.a`, plus `X11`,
-`dl`, `pthread`, `m`).
+Another Raven build? Edit the two paths in `Tutorials/Rust/.cargo/config.toml`
+(the link directory and the rpath value at the end of the file).
 
 ### The dependency, and where it points
 
@@ -162,8 +166,9 @@ PASS
 
 | Symptom | Cause and fix |
 |---|---|
-| `error: linking with cc failed` / `cannot find -lraven` | `RAVEN_LIB_DIR` is not set, or points to a folder without the library. |
-| `error while loading shared libraries: libraven.so.0` | The build found it but the loader cannot: set `LD_LIBRARY_PATH` to the same folder. |
+| `error: linking with cc failed` / `cannot find -lraven` | Raven's shared library is not built. From the repository root: `cmake -S . -B build -DRAVEN_BUILD_SHARED=ON && cmake --build build`. |
+| `rust-lld: error: undefined symbol: XSetSelectionOwner` (and hundreds more) | The linker found an installed **static** `libraven.a` instead of the shared library, so the X11 libraries were never linked. Build `build/libraven.so`, or use `RAVEN_STATIC=1`. |
+| `error while loading shared libraries: libraven.so.0` | The rpath is missing: the crate was built outside `.cargo/config.toml`, or `build/` moved after the build. Rebuild. |
 | `the file ... was not found` for `window.xml` / `notes.xml` | The step reads it through `env!("CARGO_MANIFEST_DIR")`; run from the step's folder or through `cargo run -p ...`. |
 | `cannot start Raven (is a Vulkan driver installed?)` | A real window was requested on a machine without a driver. Use `--test`. |
 | A widget has a rect of zero | No frame has been drawn yet. Call `Rdraw_frame()` once before `harness::rect`. |

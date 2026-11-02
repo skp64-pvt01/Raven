@@ -76,12 +76,14 @@ cmake --build build
 
 ```bash
 cd rust
-export RAVEN_LIB_DIR=/path/to/Raven/build
-export LD_LIBRARY_PATH="$RAVEN_LIB_DIR:$LD_LIBRARY_PATH"
 cargo run --release
 cargo run --release -- --test
 cargo run --release -- --capture panel.ppm
 ```
+
+No environment variables: `rust/.cargo/config.toml` links against the
+repository's `build/` and records it as an rpath (build it once as above). With
+the installed `raven-dev` instead: `RAVEN_STATIC=1 RAVEN_LIB_DIR=/usr/lib cargo run --release`.
 
 ### Python
 

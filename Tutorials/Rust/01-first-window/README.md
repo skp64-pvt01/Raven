@@ -90,12 +90,15 @@ From `Tutorials/Rust`:
 cargo build -p step-01-first-window
 ```
 
-Remember the two environment variables (see the [course README](../README.md)):
+Build Raven's shared library once, from the repository root:
 
 ```bash
-export RAVEN_LIB_DIR=/path/to/Raven/build
-export LD_LIBRARY_PATH="$RAVEN_LIB_DIR:$LD_LIBRARY_PATH"
+cmake -S . -B build -DRAVEN_BUILD_SHARED=ON
+cmake --build build
 ```
+
+Nothing to export: `.cargo/config.toml` in the course folder points the linker
+at `build/` and records it as an rpath (see the [course README](../README.md)).
 
 ## Run
 
@@ -144,8 +147,8 @@ The test drives the real widgets with `Rwindow_inject_mouse_move` and
 
 | Problem | Fix |
 |---|---|
-| `cannot find -lraven` | `RAVEN_LIB_DIR` is not set, or points to a folder without `libraven.so`. |
-| `error while loading shared libraries` | The build found it; the loader did not. Set `LD_LIBRARY_PATH`. |
+| `cannot find -lraven` | Raven's shared library is not built: `cmake -S . -B build -DRAVEN_BUILD_SHARED=ON && cmake --build build` from the repository root. |
+| `error while loading shared libraries` | The binary has no rpath to `build/`: rebuild it here (the course config adds it). |
 | The window appears empty | `window_from_xml` returned `R_INVALID_ID` — the XML is malformed. Print errors with `Rerror_set_callback`. |
 | Clicking does nothing | The name in `OnClicked` and in `action_bind` differ. They are case-sensitive. |
 

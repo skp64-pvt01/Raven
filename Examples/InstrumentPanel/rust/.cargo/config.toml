@@ -1,0 +1,15 @@
+# How this example finds Raven: build this repository's shared library once,
+# from Raven's root:
+#
+#     cmake -S . -B build -DRAVEN_BUILD_SHARED=ON
+#     cmake --build build
+#
+# `cargo run` then needs no environment variables. ($ORIGIN is the folder of
+# the binary: target/debug -> five levels up -> the repository root, then
+# build/.) With the installed raven-dev package instead:
+#     RAVEN_STATIC=1 RAVEN_LIB_DIR=/usr/lib cargo run --release
+[env]
+RAVEN_LIB_DIR = { value = "../../../build", relative = true }
+
+[build]
+rustflags = ["-C", "link-arg=-Wl,-rpath,$ORIGIN/../../../../../build"]
