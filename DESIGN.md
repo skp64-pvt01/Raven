@@ -1,12 +1,19 @@
-# DESIGN.md — the application and tutorial layer
+# DESIGN.md — the application layer
 
-This document describes **what was built on top of Raven**: four tutorial
-courses and a reusable instrument panel. It is written for the next developer
-(or agent) who has to extend them.
+This document describes **what was built on top of Raven** in this repository:
+the reusable instrument panel example. It is written for the next developer (or
+agent) who has to extend it.
 
-The Workbench application shell that started here now lives in its own
-repository, <https://github.com/skp64-pvt01/Raven-workbench>; its `DESIGN.md` is
-the document for it.
+Two larger projects started here and now live in their own repositories:
+
+* **Workbench** — a desktop application shell (menus, toolbar, panes, JSONC
+  settings with a JSON Schema, a generated Preferences form, an embedded guide):
+  <https://github.com/skp64-pvt01/Raven-workbench>
+* **Tutorials** — four graded courses (C++, Rust, Python, TypeScript), eight
+  learning steps plus a packaging step each:
+  <https://github.com/skp64-pvt01/Raven-tutorials>
+
+Their `DESIGN.md` documents them. This repository is their dependency only.
 
 > **Scope.** The Raven library itself (`src/`, `include/`, `bindings/`, `docs/`)
 > is upstream and is not described here; see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
@@ -19,121 +26,82 @@ the document for it.
 
 **Goals**
 
-* teach Raven end to end, in four languages, in steps that always run;
-* one reusable instrument pane, implementation-complete in C++, Rust, Python;
-* no dependency beyond what each language already needs;
-* every feature checked without a display or a GPU.
+* one reusable instrument pane, implementation-complete in C++, Rust and Python;
+* a small, realistic example: gauges, lamps, a chart and a simulated plant;
+* every feature checked without a display or a GPU;
+* code that can be copied into an application (the Workbench uses the same pane).
 
 **Non-goals**
 
-* a general-purpose application framework — the Workbench repository is the
-  template for that;
+* a general-purpose framework — the Workbench is the template for that;
 * replacing the library documentation;
-* multi-window, multi-user, network or persistence;
-* translations, accessibility work beyond what Raven gives;
-* packaging beyond what each course's `09-packaging` step teaches.
+* multi-window, networking or persistence;
+* translations, packaging or a build system shared across the three languages.
 
 ---
 
 ## 2. Layout
 
 ```
-Tutorials/
-  C++/           9 steps, common/tutorial.h, CMake
-  Rust/          8 packages + a CMake packaging step, .cargo/config.toml
-  Python/        9 steps, tutorial.py, check_all.py
-  TypeScript/    9 steps, raven.ts (FFI binding), tutorial.ts, deno.json
 Examples/
-  InstrumentPanel/  cpp/{panel.h,panel.cpp,main.cpp}, rust/, python/
+  InstrumentPanel/
+    cpp/      panel.h, panel.cpp, main.cpp, CMakeLists.txt
+    rust/     src/main.rs, Cargo.toml, .cargo/config.toml
+    python/   panel.py
+    README.md
 ```
 
-`Tutorials/` and `Examples/` are additions in this fork; new top-level paths do
-not conflict with an upstream merge.
+`Examples/` is an addition in this fork; a new top-level path does not conflict
+with an upstream merge. The `Workbench` copy of the panel lives at
+`cpp/panel/panel.{h,cpp}` in the Workbench repository; keep the two in step.
 
 ---
 
-## 3. The tutorial suite
+## 3. The instrument panel
 
-### 3.1 Shape
+The pane is one module with three implementations, all with the same behaviour:
 
-Four courses, each with **eight learning steps and one packaging step**, graded
-by level:
-
-| Level | Steps | Theme |
-|---|---|---|
-| 1 — Beginner | 01, 02 | window, widgets, callbacks, layout |
-| 2 — Elementary | 03, 04 | controls and state, actions and shortcuts |
-| 3 — Intermediate | 05, 06 | XML interfaces, menus |
-| 4 — Advanced | 07, 08, 09 | text editor and files, capstone editor, packaging |
-
-All four courses build the **same application** — a small text editor with
-menus, shortcuts, file dialogs and an unsaved-changes guard — so a reader can
-compare languages side by side.
-
-| Course | Steps | Checks | Binding |
+| Module | C++ | Rust | Python |
 |---|---|---|---|
-| C++ | 8 + packaging | 67 | the C API directly |
-| Rust | 8 + packaging | 56 | `raven-gui` crate (path dependency) |
-| Python | 8 + packaging | 55 | `bindings/python/raven.py` (ctypes) |
-| TypeScript | 8 + packaging | 53 | `raven.ts`, written for this course (Deno FFI) |
+| the pane | `panel.h` / `panel.cpp` | `src/main.rs` | `panel.py` |
+| entry point | `main.cpp` | `src/main.rs` | `panel.py` |
 
-### 3.2 Anatomy of a step
+The public surface is the same: create/build the widget tree, simulate the
+plant, refresh the labels and lamps, reset, pause, read pressure/flow/samples,
+and set the alarm threshold, trend window and switches. The Workbench adds
+setters for the configuration file.
 
-* one executable (`main.cpp` / `main.rs` / `main.py` / `main.ts`) and a README;
-* the program runs windowed, or with `--test` on the null backend;
-* `--test` drives the real widgets with synthetic input and asserts state;
-* the README has: goal, what you learn, walkthrough, build, run, test,
-  checkpoint, exercises, troubleshooting.
+Each implementation has four paint callbacks (analog gauge, digital meter, lamp,
+strip chart) that draw with Raven's `Rdraw_*` and read colours with
+`Rwidget_get_color`, so they follow the theme. The plant is a tiny simulated
+process: a pump, a valve and an interlock; the trend stores 10 seconds at 30 Hz.
 
-The shared harness differs per language because each has its own idiom:
+**Why three implementations.** The example is the shortest complete Raven
+program per language, and the three can be compared line by line. The C++
+version is the reference; the Rust and Python versions follow it.
 
-| Language | Harness | Test entry |
-|---|---|---|
-| C++ | `common/tutorial.h` (inline helpers) | CTest calls each binary with `--test` |
-| Rust | `src/harness.rs` copied per package | `tests/check.rs` spawns the binary; `cargo test` |
-| Python | `tutorial.py`, imported by path insert | `check_all.py` runs each script |
-| TypeScript | `tutorial.ts` | `check_all.ts`, `deno task test` |
-
-### 3.3 Decisions
-
-* **XML-first for the bindings.** Rust and Python bindings are action-centric
-  (closures/functions per action name); building widgets in code would mean
-  passing raw C callbacks everywhere. Rust, Python and TypeScript therefore
-  describe the interface in XML from step 01 and bind actions; the C++ course
-  starts with the widget tree in code (it is the API being taught) and moves to
-  XML at step 05.
-* **`--test` on the null backend.** A GUI is untestable until it can run
-  headless; Raven's null backend plus `Rwindow_inject_*` makes every step a
-  normal unit-testable program. The alternative — a mock layer — would test
-  nothing real.
-* **Packaging is a separate step, not a build feature.** Each `09-packaging`
-  project builds the step-08 sources and installs/packs them (CPack: DEB + TGZ),
-  which teaches that packaging is a build concern and keeps the application
-  sources untouched.
-* **Bindings from the checkout, not a registry.** The Rust crate is a path
-  dependency (the crates.io name belongs to another project); Python on Linux
-  uses `bindings/python` (the wheel is Windows-only); Deno uses the hand-written
-  FFI binding. Each README states the one line to change.
+**Why a module, not a screen.** `panel.h` is an opaque API and the drawing lives
+in `panel.cpp`; the same file can be reused (as the Workbench does) or deleted
+as a unit. The cost is that a new control needs an accessor.
 
 ---
 
-## 4. The Workbench (separate repository)
+## 4. Testing
 
-The application shell that was developed here — menu bar, toolbar, side bar,
-panes, JSONC settings with a JSON Schema, a generated Preferences form, an
-embedded user guide, context menus — now lives in its own repository:
+Every implementation has a `--test` mode: Raven starts on the null backend, the
+real widgets are driven with `Rwindow_inject_*`, and the checks assert state
+(pressure, flow, samples, lamp, alarm, paint counts), never pixels. The browser,
+the GPU and the display are not involved. A real window is only for looking at
+the result; `--capture` writes a PPM frame.
 
-> <https://github.com/skp64-pvt01/Raven-workbench>
+---
 
-It is a desktop shell on Raven and doubles as a template for new projects. Raven
-is its only dependency: it is used from an installed package, or from a checkout
-with `-DRAVEN_SOURCE_DIR=/path/to/Raven` (nothing is vendored). Its architecture,
-decisions, extension recipes and limits are documented there, in its own
-`DESIGN.md`.
+## 5. Limits and future work
 
-The instrument pane is shared: `Examples/InstrumentPanel/cpp/panel.{h,cpp}` here
-and `cpp/panel/panel.{h,cpp}` in the Workbench are copies of the same module.
-Change one, change the other.
+* The pane is a demo of drawing and simulation, not a process-control library.
+* The three implementations are ports; a change belongs in all of them.
+* The Workbench and Tutorials repositories carry the settings, schema and
+  course material; this repository does not.
 
 ---
 
